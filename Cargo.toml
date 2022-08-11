@@ -1,5 +1,5 @@
 [package]
-name = "bevy_giffer"
+name = "bevy_capture_media"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,6 +13,14 @@ parallel = ["dep:rayon"]
 
 [dependencies]
 bevy_render = "0.8"
+bevy_app = "0.8"
+bevy_tasks = "0.8"
+bevy_ecs = "0.8"
+bevy_asset = "0.8"
+bevy_transform = "0.8"
+bevy_core_pipeline = "0.8"
+bevy_time = "0.8"
+
 #bevy = { version = "0.8", default-features = false, features = ["render", "bevy_winit", "png"] }
 log = "0.4"
 wgpu = "0.13"

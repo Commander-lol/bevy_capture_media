@@ -1,12 +1,16 @@
-use bevy::math::UVec2;
-use bevy::render::texture::TextureFormatPixelInfo;
+use bevy_render::texture::TextureFormatPixelInfo;
 use image::RgbaImage;
 use wgpu::TextureFormat;
 
-pub fn frame_data_to_rgba_image(size: UVec2, buffer: Vec<u8>, format: TextureFormat) -> RgbaImage {
+pub fn frame_data_to_rgba_image(
+	width: u32,
+	height: u32,
+	buffer: Vec<u8>,
+	format: TextureFormat,
+) -> RgbaImage {
 	let pixels = buffer.chunks(format.pixel_size()).collect::<Vec<&[u8]>>();
-	let mut image = RgbaImage::from_fn(size.x, size.y, |x, y| {
-		let index = ((y * size.x) + x) as usize;
+	RgbaImage::from_fn(width, height, |x, y| {
+		let index = ((y * width) + x) as usize;
 		let pixel = pixels[index];
 
 		match format {
@@ -22,9 +26,7 @@ pub fn frame_data_to_rgba_image(size: UVec2, buffer: Vec<u8>, format: TextureFor
 				panic!("Unhandled texture format {:?}", format);
 			}
 		}
-	});
-
-	image
+	})
 }
 
 pub fn to_rgba(buffer: Vec<u8>, format: TextureFormat) -> Vec<u8> {

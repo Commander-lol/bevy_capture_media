@@ -1,7 +1,15 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
+use bevy_asset::Assets;
+use bevy_core_pipeline::core_2d::Camera2dBundle;
+use bevy_ecs::entity::Entity;
+use bevy_ecs::event::Events;
+use bevy_ecs::query::{With, Without};
+use bevy_ecs::system::{Commands, Query, Res, ResMut};
+use bevy_render::camera::{Camera, OrthographicProjection, RenderTarget};
+use bevy_render::texture::Image;
+use bevy_time::Time;
+use bevy_transform::components::Transform;
 
 use crate::data::ProjectToImage;
 use crate::data::{
@@ -15,7 +23,7 @@ pub fn sync_tracking_cameras(
 ) {
 	for (mut transform, mut ortho, Track(camera)) in &mut trackers {
 		if let Ok((target_transform, target_ortho)) = tracked.get(*camera) {
-			*transform = target_transform.clone();
+			*transform = *target_transform;
 			*ortho = target_ortho.clone();
 		}
 	}
@@ -30,9 +38,9 @@ pub fn clean_cameras(
 ) {
 	for (entity, Recorder(id), Track(target)) in &trackers {
 		if tracked.get(*target).is_err() {
-			commands.entity(entity).despawn_recursive();
-			smugglers.lock().unwrap().remove(&id);
-			recorders.remove(&id);
+			commands.entity(entity).despawn();
+			smugglers.lock().unwrap().remove(id);
+			recorders.remove(id);
 		}
 	}
 }
@@ -43,7 +51,7 @@ pub fn clean_unmonitored_tasks<T: HasTaskStatus>(
 ) {
 	for (entity, mut task) in &mut tasks {
 		if task.is_done() {
-			commands.entity(entity).despawn_recursive();
+			commands.entity(entity).despawn();
 		}
 	}
 }
@@ -54,7 +62,8 @@ pub fn move_camera_buffers(
 	mut recorders: ResMut<ActiveRecorders>,
 ) {
 	let dt = time.delta();
-	for (id, mut data) in smugglers.lock().unwrap().iter_mut() {
+	let mut smugglers = smugglers.lock().unwrap();
+	for (id, mut data) in smugglers.iter_mut() {
 		if data.last_frame.is_none() {
 			continue;
 		}

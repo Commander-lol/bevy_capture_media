@@ -4,9 +4,13 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use bevy::prelude::*;
-use bevy::render::texture::BevyDefault;
+use bevy_asset::Handle;
+use bevy_ecs::component::Component;
+use bevy_ecs::entity::Entity;
+use bevy_render::camera::OrthographicProjection;
+use bevy_render::texture::{BevyDefault, Image};
 use wgpu::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+
 pub type RecorderID = usize;
 
 #[derive(Clone, Debug)]

@@ -1,14 +1,14 @@
+#[allow(clippy::type_complexity)]
 pub mod data;
 pub mod formats;
-pub mod management;
-// pub mod recorder;
 #[cfg(any(feature = "gif", feature = "png"))]
 mod image_utils;
+pub mod management;
 pub mod render;
 
 mod plugin {
-	use bevy::prelude::*;
-	use bevy::render::{RenderApp, RenderStage};
+	use bevy_app::{App, CoreStage, Plugin};
+	use bevy_render::{RenderApp, RenderStage};
 
 	use super::*;
 
@@ -34,26 +34,33 @@ mod plugin {
 			#[cfg(feature = "gif")]
 			{
 				app.add_event::<data::CaptureRecording<formats::gif::RecordGif>>()
-					.add_system_to_stage(CoreStage::PostUpdate, formats::gif::capture_gif_recording)
 					.add_system_to_stage(
-						CoreStage::Last,
-						management::clean_unmonitored_tasks::<formats::gif::SaveGifRecording>,
+						CoreStage::PostUpdate,
+						formats::gif::capture_gif_recording,
 					);
+
+				#[cfg(not(target_arch = "wasm32"))]
+				app.add_system_to_stage(
+					CoreStage::Last,
+					management::clean_unmonitored_tasks::<formats::gif::SaveGifRecording>,
+				);
 			}
 			#[cfg(feature = "png")]
 			{
-				app.add_system_to_stage(CoreStage::PostUpdate, formats::png::save_single_frame)
-					.add_system_to_stage(
-						CoreStage::Last,
-						management::clean_unmonitored_tasks::<formats::png::SaveFrameTask>,
-					);
+				app.add_system_to_stage(CoreStage::PostUpdate, formats::png::save_single_frame);
+
+				#[cfg(not(target_arch = "wasm32"))]
+				app.add_system_to_stage(
+					CoreStage::Last,
+					management::clean_unmonitored_tasks::<formats::png::SaveFrameTask>,
+				);
 			}
 
 			let render_app = app.get_sub_app_mut(RenderApp)
-				.expect("bevy_capture will not work without the app. Either enable this sub app, or disable bevy_capture");
+				.expect("bevy_capture_media will not work without the render app. Either enable this sub app, or disable bevy_capture_media");
 
 			render_app
-				.insert_resource(data_smuggler.clone())
+				.insert_resource(data_smuggler)
 				.add_system_to_stage(RenderStage::Render, render::smuggle_frame);
 		}
 	}

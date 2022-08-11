@@ -1,8 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use bevy::prelude::*;
-use bevy::render::texture::TextureFormatPixelInfo;
-use bevy::tasks::{AsyncComputeTaskPool, Task};
+use bevy_asset::Assets;
+use bevy_ecs::component::Component;
+use bevy_ecs::prelude::Events;
+use bevy_ecs::system::{Commands, Res, ResMut};
+use bevy_render::texture::Image;
+use bevy_render::texture::TextureFormatPixelInfo;
+use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 use image::{ImageBuffer, ImageFormat};
 use wgpu::TextureFormat;
@@ -34,9 +38,10 @@ pub fn save_single_frame(
 				None => continue 'event_drain,
 			};
 
-			let (target_size, target_format) = match images.get(&recorder.target_handle) {
+			let (width, height, target_format) = match images.get(&recorder.target_handle) {
 				Some(image) => (
-					UVec2::new(image.size().x as u32, image.size().y as u32),
+					image.size().x as u32,
+					image.size().y as u32,
 					image.texture_descriptor.format,
 				),
 				None => continue 'event_drain,
@@ -44,16 +49,15 @@ pub fn save_single_frame(
 
 			let task = thread_pool.spawn(async move {
 				let data = data;
-				let size = target_size;
 				let format = target_format;
 
-				let expected_size = size.x * size.y * format.pixel_size() as u32;
+				let expected_size = width * height * format.pixel_size() as u32;
 				if expected_size != data.len() as u32 {
 					log::error!("Failed to assert that the data frame is correctly formatted");
 					return;
 				}
 
-				let image = frame_data_to_rgba_image(size, data, format);
+				let image = frame_data_to_rgba_image(width, height, data, format);
 				if let Err(e) = image.save_with_format(
 					event.path.unwrap_or_else(|| {
 						PathBuf::from(format!(
@@ -67,7 +71,11 @@ pub fn save_single_frame(
 				}
 			});
 
-			commands.spawn().insert(SaveFrameTask(task));
+			if cfg!(target_arch = "wasm32") {
+				task.detach();
+			} else {
+				commands.spawn().insert(SaveFrameTask(task));
+			}
 		}
 	}
 }

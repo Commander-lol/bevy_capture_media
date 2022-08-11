@@ -5,8 +5,12 @@ use std::io::BufWriter;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use bevy::prelude::*;
-use bevy::tasks::{AsyncComputeTaskPool, Task};
+use bevy_asset::Assets;
+use bevy_ecs::component::Component;
+use bevy_ecs::event::Events;
+use bevy_ecs::system::{Commands, Res, ResMut};
+use bevy_render::texture::Image;
+use bevy_tasks::{AsyncComputeTaskPool, Task};
 use color_quant::NeuQuant;
 use futures_lite::future;
 use gif::{Encoder, Frame, Repeat};
@@ -91,10 +95,13 @@ pub fn capture_gif_recording(
 
 				let out_buffer = std::fs::File::create("test.gif").unwrap();
 				let mut writer = BufWriter::new(out_buffer);
+
 				log::info!("Create encoder");
+
 				match gif::Encoder::new(writer, target_size.x as u16, target_size.y as u16, &[]) {
 					Ok(mut encoder) => {
 						log::info!("Got encoder");
+
 						encoder.set_repeat(Repeat::Infinite);
 						let frames = quantize_frames(
 							target_size.x as u16,
@@ -103,16 +110,6 @@ pub fn capture_gif_recording(
 							target_format,
 						);
 						log::info!("Done quantize");
-
-						// for mut data in frames {
-						// 	let formatted = to_rgba(data.texture, target_format);
-						// 	let quant = NeuQuant::new(15, 256, formatted.texture.as_slice());
-						//
-						// 	let frame_data = frame_data_to_rgba_image(data.texture, target_format);
-						// 	let frame = Frame::default();
-						// 	frame.delay = encoder.write_frame(frame).unwrap();
-						// }
-						log::info!("Start write frames");
 
 						for frame in frames {
 							encoder.write_frame(&frame).unwrap();
@@ -130,7 +127,11 @@ pub fn capture_gif_recording(
 				()
 			});
 
-			commands.spawn().insert(SaveGifRecording(task));
+			if cfg!(target_arch = "wasm32") {
+				task.detach();
+			} else {
+				commands.spawn().insert(SaveGifRecording(task));
+			}
 		}
 	}
 }

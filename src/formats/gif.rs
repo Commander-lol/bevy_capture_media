@@ -14,6 +14,7 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use color_quant::NeuQuant;
 use futures_lite::future;
 use gif::{Encoder, Frame, Repeat};
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use wgpu::TextureFormat;
 
@@ -32,7 +33,12 @@ impl HasTaskStatus for SaveGifRecording {
 	}
 }
 
-fn process_frame(width: u16, height: u16, format: TextureFormat, frame: TextureFrame) -> Frame {
+fn process_frame(
+	width: u16,
+	height: u16,
+	format: TextureFormat,
+	frame: TextureFrame,
+) -> Frame<'static> {
 	let formatted = to_rgba(frame.texture, format);
 	let quant = NeuQuant::new(20, 256, formatted.as_slice());
 	let mut index_cache = fnv::FnvHashMap::default();

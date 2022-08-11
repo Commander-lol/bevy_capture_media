@@ -48,3 +48,23 @@ pub fn to_rgba(buffer: Vec<u8>, format: TextureFormat) -> Vec<u8> {
 		}
 	}
 }
+
+pub fn to_grouped_rgba(buffer: &[u8], format: TextureFormat) -> Vec<[u8; 4]> {
+	buffer
+		.chunks_exact(4)
+		.map(|pixel| match pixel {
+			[rb, g, br, a] => match format {
+				TextureFormat::Rgba8UnormSrgb
+				| TextureFormat::Rgba8Uint
+				| TextureFormat::Rgba8Sint
+				| TextureFormat::Rgba8Snorm
+				| TextureFormat::Rgba8Unorm => [*rb, *g, *br, *a],
+				TextureFormat::Bgra8Unorm | TextureFormat::Bgra8UnormSrgb => [*br, *g, *rb, *a],
+				_ => {
+					panic!("Unhandled texture format {:?}", format);
+				}
+			},
+			_ => panic!("chunks_exact did not give an exact chunk"),
+		})
+		.collect()
+}

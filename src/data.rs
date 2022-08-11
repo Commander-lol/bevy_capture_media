@@ -96,6 +96,43 @@ pub enum PostCaptureAction {
 	Stop,
 }
 
+pub trait ProjectToImage {
+	fn project_to_image(&self) -> Image;
+}
+
+impl ProjectToImage for &OrthographicProjection {
+	fn project_to_image(&self) -> Image {
+		let format = TextureFormat::bevy_default();
+		let size = Extent3d {
+			width: (self.right - self.left).max(0.0) as u32,
+			height: (self.top - self.bottom).max(0.0) as u32,
+			..Default::default()
+		};
+
+		let mut img = Image {
+			texture_descriptor: TextureDescriptor {
+				label: None,
+				size,
+				dimension: TextureDimension::D2,
+				format,
+				usage: TextureUsages::TEXTURE_BINDING
+					| TextureUsages::RENDER_ATTACHMENT
+					| TextureUsages::COPY_DST
+					| TextureUsages::COPY_SRC,
+				sample_count: 1,
+				mip_level_count: 1,
+			},
+			..Default::default()
+		};
+		img.resize(size);
+		img
+	}
+}
+
+pub trait HasTaskStatus: Component {
+	fn is_done(&mut self) -> bool;
+}
+
 // -- EVENTS --
 
 #[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Debug)]
@@ -137,41 +174,4 @@ impl CaptureRecordingType {
 			capture_type: crate::formats::gif::RecordGif,
 		}
 	}
-}
-
-pub trait ProjectToImage {
-	fn project_to_image(&self) -> Image;
-}
-
-impl ProjectToImage for &OrthographicProjection {
-	fn project_to_image(&self) -> Image {
-		let format = TextureFormat::bevy_default();
-		let size = Extent3d {
-			width: (self.right - self.left).max(0.0) as u32,
-			height: (self.top - self.bottom).max(0.0) as u32,
-			..Default::default()
-		};
-
-		let mut img = Image {
-			texture_descriptor: TextureDescriptor {
-				label: None,
-				size,
-				dimension: TextureDimension::D2,
-				format,
-				usage: TextureUsages::TEXTURE_BINDING
-					| TextureUsages::RENDER_ATTACHMENT
-					| TextureUsages::COPY_DST
-					| TextureUsages::COPY_SRC,
-				sample_count: 1,
-				mip_level_count: 1,
-			},
-			..Default::default()
-		};
-		img.resize(size);
-		img
-	}
-}
-
-pub trait HasTaskStatus: Component {
-	fn is_done(&mut self) -> bool;
 }

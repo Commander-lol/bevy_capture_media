@@ -3,8 +3,6 @@ name = "bevy_capture_media"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 default = ["png"]
 png = ["dep:image"]
@@ -26,10 +24,10 @@ log = "0.4"
 wgpu = "0.13"
 futures-lite = "1.12"
 
-# Dpendencies for all image types
+# Dependencies for all image types
 image = { version = "0.24", optional = true }
 
-# Dpendencies for GIFs
+# Dependencies for GIFs
 gif = { version = "0.11", optional = true }
 color_quant = { version = "1.1.0", optional = true }
 rayon = { version = "1.5", optional = true }

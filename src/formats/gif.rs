@@ -32,6 +32,37 @@ impl HasTaskStatus for SaveGifRecording {
 	}
 }
 
+fn process_frame(width: u16, height: u16, format: TextureFormat, frame: TextureFrame) -> Frame {
+	let formatted = to_rgba(frame.texture, format);
+	let quant = NeuQuant::new(20, 256, formatted.as_slice());
+	let mut index_cache = fnv::FnvHashMap::default();
+	let pixels: Vec<u8> = formatted
+		.chunks(4)
+		.map(|pixel| {
+			*(index_cache
+				.entry(pixel)
+				.or_insert_with(|| quant.index_of(pixel) as u8))
+		})
+		.collect();
+
+	let mut output = Frame::default();
+	// GIF delay is increments of 10ms in u16; duration gives millis in u128.
+	// Convert to GIF delay scale then do a capped conversion to u16
+	output.delay = (frame.frame_time.as_millis() / 10).min(u16::MAX as u128) as u16;
+	output.palette = Some(quant.color_map_rgb());
+	output.transparent = None;
+
+	output.left = 0;
+	output.top = 0;
+	output.width = width;
+	output.height = height;
+
+	output.buffer = Cow::Owned(pixels);
+
+	output
+}
+
+#[cfg(feature = "parallel")]
 pub fn quantize_frames(
 	width: u16,
 	height: u16,
@@ -41,35 +72,21 @@ pub fn quantize_frames(
 	log::info!("Starting quantize");
 	frames
 		.into_par_iter()
-		.map(|frame| {
-			let formatted = to_rgba(frame.texture, format);
-			let quant = NeuQuant::new(20, 256, formatted.as_slice());
-			let mut index_cache = fnv::FnvHashMap::default();
-			let pixels: Vec<u8> = formatted
-				.chunks(4)
-				.map(|pixel| {
-					*(index_cache
-						.entry(pixel)
-						.or_insert_with(|| quant.index_of(pixel) as u8))
-				})
-				.collect();
+		.map(|frame| process_frame(width, height, format, frame))
+		.collect()
+}
 
-			let mut output = Frame::default();
-			// GIF delay is increments of 10ms in u16; duration gives millis in u128.
-			// Convert to GIF delay scale then do a capped conversion to u16
-			output.delay = (frame.frame_time.as_millis() / 10).min(u16::MAX as u128) as u16;
-			output.palette = Some(quant.color_map_rgb());
-			output.transparent = None;
-
-			output.left = 0;
-			output.top = 0;
-			output.width = width;
-			output.height = height;
-
-			output.buffer = Cow::Owned(pixels);
-
-			output
-		})
+#[cfg(not(feature = "parallel"))]
+pub fn quantize_frames(
+	width: u16,
+	height: u16,
+	frames: VecDeque<TextureFrame>,
+	format: TextureFormat,
+) -> Vec<Frame<'static>> {
+	log::info!("Starting quantize");
+	frames
+		.into_iter()
+		.map(|frame| process_frame(width, height, format, frame))
 		.collect()
 }
 

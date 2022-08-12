@@ -1,3 +1,4 @@
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use bevy_asset::Assets;
@@ -8,15 +9,19 @@ use bevy_render::texture::Image;
 use bevy_render::texture::TextureFormatPixelInfo;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
-use image::{ImageBuffer, ImageFormat};
+use image::{EncodableLayout, ImageBuffer, ImageFormat};
 use wgpu::TextureFormat;
 
 use crate::data::{ActiveRecorders, CaptureFrame, HasTaskStatus};
 use crate::image_utils::frame_data_to_rgba_image;
+#[cfg(target_arch = "wasm32")]
+use crate::web_utils;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Component)]
 pub struct SaveFrameTask(pub Task<()>);
 
+#[cfg(not(target_arch = "wasm32"))]
 impl HasTaskStatus for SaveFrameTask {
 	fn is_done(&mut self) -> bool {
 		let result = future::block_on(future::poll_once(&mut self.0));
@@ -58,24 +63,45 @@ pub fn save_single_frame(
 				}
 
 				let image = frame_data_to_rgba_image(width, height, data, format);
-				if let Err(e) = image.save_with_format(
-					event.path.unwrap_or_else(|| {
+				#[cfg(not(target_arch = "wasm32"))]
+				{
+					let file_name = event.path.unwrap_or_else(|| {
 						PathBuf::from(format!(
 							"{}.png",
 							std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
 						))
-					}),
-					ImageFormat::Png,
-				) {
-					log::error!("Failed to write screenshot: {}", e);
+					});
+
+					if let Err(e) = image.save_with_format(file_name, ImageFormat::Png) {
+						log::error!("Failed to write screenshot: {}", e);
+					}
+				}
+				#[cfg(target_arch = "wasm32")]
+				{
+					let file_name = event
+						.path
+						.and_then(|path| {
+							path.file_name()
+								.and_then(|name| name.to_str())
+								.map(|name| PathBuf::from(name))
+						})
+						.unwrap_or_else(|| {
+							PathBuf::from(format!("{}.png", crate::web_utils::get_now()))
+						});
+
+					log::info!("Image size: {}", image.len());
+
+					let mut file_bytes = Cursor::new(vec![0; image.len()]);
+					image.write_to(&mut file_bytes, image::ImageFormat::Png);
+
+					crate::web_utils::download_bytes(file_name, file_bytes.into_inner())
 				}
 			});
 
-			if cfg!(target_arch = "wasm32") {
-				task.detach();
-			} else {
-				commands.spawn().insert(SaveFrameTask(task));
-			}
+			#[cfg(target_arch = "wasm32")]
+			task.detach();
+			#[cfg(not(target_arch = "wasm32"))]
+			commands.spawn().insert(SaveFrameTask(task));
 		}
 	}
 }

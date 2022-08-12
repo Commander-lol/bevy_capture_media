@@ -24,8 +24,11 @@ use crate::image_utils::{frame_data_to_rgba_image, to_rgba};
 pub struct RecordGif;
 pub type CaptureGifRecording = CaptureRecording<RecordGif>;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Component)]
-pub struct SaveGifRecording(Task<()>);
+pub struct SaveGifRecording(pub Task<()>);
+
+#[cfg(not(target_arch = "wasm32"))]
 impl HasTaskStatus for SaveGifRecording {
 	fn is_done(&mut self) -> bool {
 		let result = future::block_on(future::poll_once(&mut self.0));
@@ -150,11 +153,10 @@ pub fn capture_gif_recording(
 				()
 			});
 
-			if cfg!(target_arch = "wasm32") {
-				task.detach();
-			} else {
-				commands.spawn().insert(SaveGifRecording(task));
-			}
+			#[cfg(target_arch = "wasm32")]
+			task.detach();
+			#[cfg(not(target_arch = "wasm32"))]
+			commands.spawn().insert(SaveGifRecording(task));
 		}
 	}
 }

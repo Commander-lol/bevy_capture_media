@@ -2,7 +2,7 @@
 Event based image &amp; video capture for Bevy
 
 [![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue?style=for-the-badge)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
-![Crates.io](https://img.shields.io/crates/v/bevy_media_capture?style=for-the-badge)
+![Crates.io](https://img.shields.io/crates/v/bevy_capture_media?style=for-the-badge)
 ![docs.rs](https://img.shields.io/docsrs/bevy_capture_media?style=for-the-badge)
 
 ## Features

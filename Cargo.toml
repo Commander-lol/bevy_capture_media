@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Louis Capitanchik <louis@microhacks.co.uk"]
 license-file = "LICENSE"
 repository = "https://github.com/Commander-lol/bevy_capture_media"
+description = "Event based screenshots & recording for Bevy Engine"
 
 [features]
 default = ["png"]

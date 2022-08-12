@@ -228,7 +228,7 @@ pub struct CaptureFrame<CaptureType> {
 /// Request that the current frame buffer is converted into the specified `CaptureType` and
 /// saved. Encoding the frame buffer usually takes some amount of time on most platforms, which
 /// will happen asynchronously
-#[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Debug, Default)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Default)]
 pub struct CaptureRecording<CaptureType> {
 	/// The identifier for the camera tracker that should capture a frame
 	pub tracking_id: RecorderID,

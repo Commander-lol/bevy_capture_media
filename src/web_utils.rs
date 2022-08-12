@@ -101,94 +101,57 @@ pub fn focus_on_first_of_type(element_type: &str) {
 	.focus();
 }
 
-#[wasm_bindgen(inline_js = r#"
-export async function save_bytes(filename, bytes) {
-	const reader = new FileReader()
-	const promise = new Promise(function (resolve, reject) {
-		function onSuccess() {
-			resolve(reader.result)
-			reader.removeEventListener('load', onSuccess)
-			reader.removeEventListener('error', onFailure)
-		}
-		function onFailure(e) {
-			reject(e)
-			reader.removeEventListener('load', onSuccess)
-			reader.removeEventListener('error', onFailure)
-		}
-		reader.addEventListener('load', onSuccess)
-		reader.addEventListener('error', onFailure)
-	})
-	reader.readAsDataURL(new Blob(bytes))
-	
-	const value = await promise
-	
-	const link = document.createElement('a')
-	link.href = value
-	link.download = filename
-	link.click()
- }"#)]
-extern "C" {
-	fn save_bytes(file_name: String, bytes: &[u8]) -> Promise;
-}
-
 async fn download_bytes_inner(file_name: PathBuf, bytes: Vec<u8>) {
-	JsFuture::from(save_bytes(
-		format!("{}", file_name.display()),
-		bytes.as_slice(),
-	));
-	// .await;
+	let bytes = bytes.as_slice();
+	let js_byte_array = Uint8Array::from(bytes);
+	let js_array = Array::new();
+	js_array.push(&js_byte_array.buffer());
+
+	let blob = err_return!(
+		Blob::new_with_u8_array_sequence_and_options(
+			&js_array,
+			BlobPropertyBag::new().type_("image/png"),
+		),
+		"Failed to create screenshot blob data"
+	);
+
+	let obj_url = err_return!(
+		JsFuture::from(read_to_data(&blob)).await,
+		"Failed to create data url for screenshot"
+	);
+	let obj_url_string = null_return!(
+		obj_url.as_string(),
+		"Couldn't convert the data url from a JsValue to a String"
+	);
+	let window: Window = null_return!(
+		web_sys::window(),
+		"Didn't find a window to attach to while saving screenshot"
+	);
+	let document: Document = null_return!(
+		window.document(),
+		"Window did not contain a document to attach to while saving screenshot"
+	);
+	let link = err_return!(
+		document.create_element("a"),
+		"Could not create download link handler"
+	);
+	err_return!(
+		link.set_attribute("href", obj_url_string.as_str()),
+		"Failed to attach blob url"
+	);
+	err_return!(
+		link.set_attribute("download", format!("{}", file_name.display()).as_str()),
+		"Failed to attach file name"
+	);
+	let html_link = err_return!(
+		link.dyn_into::<web_sys::HtmlElement>(),
+		"Could not get interactable version of download link"
+	);
+
+	html_link.click();
+
+	log::info!("Saving image to path {}", file_name.display());
 }
-// async fn _download_bytes_inner(file_name: PathBuf, bytes: Vec<u8>) {
-// 	let bytes = bytes.as_slice();
-// 	let js_byte_array = Uint8Array::from(bytes);
-// 	let js_array = Array::new();
-// 	js_array.push(&js_byte_array.buffer());
-//
-// 	let blob = err_return!(
-// 		Blob::new_with_u8_array_sequence_and_options(
-// 			&js_array,
-// 			BlobPropertyBag::new().type_("image/png"),
-// 		),
-// 		"Failed to create screenshot blob data"
-// 	);
-//
-// 	let obj_url = err_return!(
-// 		JsFuture::from(read_to_data(&blob)).await,
-// 		"Failed to create data url for screenshot"
-// 	);
-// 	let obj_url_string = null_return!(
-// 		obj_url.as_string(),
-// 		"Couldn't convert the data url from a JsValue to a String"
-// 	);
-// 	let window: Window = null_return!(
-// 		web_sys::window(),
-// 		"Didn't find a window to attach to while saving screenshot"
-// 	);
-// 	let document: Document = null_return!(
-// 		window.document(),
-// 		"Window did not contain a document to attach to while saving screenshot"
-// 	);
-// 	let link = err_return!(
-// 		document.create_element("a"),
-// 		"Could not create download link handler"
-// 	);
-// 	err_return!(
-// 		link.set_attribute("href", obj_url_string.as_str()),
-// 		"Failed to attach blob url"
-// 	);
-// 	err_return!(
-// 		link.set_attribute("download", format!("{}", file_name.display()).as_str()),
-// 		"Failed to attach file name"
-// 	);
-// 	let html_link = err_return!(
-// 		link.dyn_into::<web_sys::HtmlElement>(),
-// 		"Could not get interactable version of download link"
-// 	);
-//
-// 	html_link.click();
-//
-// 	log::info!("Saving image to path {}", file_name.display());
-// }
 
 pub fn download_bytes(file_name: PathBuf, bytes: Vec<u8>) {
 	wasm_bindgen_futures::spawn_local(download_bytes_inner(file_name, bytes));

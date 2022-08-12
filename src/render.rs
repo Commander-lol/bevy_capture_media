@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::num::NonZeroU32;
 use std::ops::Deref;
 
@@ -8,15 +9,24 @@ use bevy_render::renderer::{RenderDevice, RenderQueue};
 use bevy_render::texture::{Image, ImageFormat, TextureFormatPixelInfo};
 use wgpu::{
 	BufferDescriptor, BufferUsages, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer,
-	ImageDataLayout, Maintain, TextureDescriptor,
+	ImageDataLayout, Maintain, TextureDescriptor, COPY_BYTES_PER_ROW_ALIGNMENT,
 };
 
 use crate::data::SharedDataSmuggler;
 
+pub fn align_byte_size(value: u32) -> u32 {
+	value + (COPY_BYTES_PER_ROW_ALIGNMENT - (value % COPY_BYTES_PER_ROW_ALIGNMENT))
+}
+
+pub fn get_aligned_size(width: u32, height: u32, pixel_size: u32) -> u32 {
+	height * align_byte_size(width * pixel_size)
+}
+
 pub fn layout_data(width: u32, height: u32, format: TextureFormat) -> ImageDataLayout {
 	ImageDataLayout {
 		bytes_per_row: if height > 1 {
-			NonZeroU32::new((width as usize * (format.pixel_size())) as u32)
+			// 1 = 1 row
+			NonZeroU32::new(get_aligned_size(width, 1, format.pixel_size() as u32))
 		} else {
 			None
 		},
@@ -40,7 +50,8 @@ pub fn smuggle_frame(
 			let device = render_device.wgpu_device();
 			let destination = device.create_buffer(&BufferDescriptor {
 				label: None,
-				size: (width * height * image.texture_format.pixel_size() as u32) as u64,
+				size: get_aligned_size(width, height, image.texture_format.pixel_size() as u32)
+					as u64,
 				usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
 				mapped_at_creation: false,
 			});
@@ -80,7 +91,24 @@ pub fn smuggle_frame(
 			let result = Vec::from(data.deref());
 			drop(data);
 
-			recorder.last_frame = Some(result);
+			if result.len() == ((width * height) as usize * image.texture_format.pixel_size()) {
+				recorder.last_frame = Some(result)
+			} else {
+				// Our buffer has been padded because we needed to align to a multiple of 256.
+				// We can simplify things elsewhere by removing the padding before smuggling the
+				// frame
+				let pixel_size = image.texture_format.pixel_size() as u32;
+				let initial_row_bytes = width * pixel_size;
+				let buffered_row_bytes = align_byte_size(width * pixel_size);
+
+				let result = result
+					.chunks_exact(buffered_row_bytes as usize) // Take rows
+					.flat_map(|row| row.iter().take(initial_row_bytes as usize)) // Take only the expected number of bytes
+					.copied() // Darned references
+					.collect();
+
+				recorder.last_frame = Some(result);
+			}
 		}
 	}
 }

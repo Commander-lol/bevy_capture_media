@@ -1,6 +1,10 @@
 # bevy_capture_media
 Event based image &amp; video capture for Bevy
 
+[![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue?style=for-the-badge)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
+![Crates.io](https://img.shields.io/crates/v/bevy_media_capture?style=for-the-badge)
+![docs.rs](https://img.shields.io/docsrs/bevy_capture_media?style=for-the-badge)
+
 ## Features
 - Track any number of cameras for recording
 - Dispatch events to control the recording lifecycle
@@ -17,8 +21,49 @@ Event based image &amp; video capture for Bevy
 - Perspective camera support
 - More formats
 - More control over frame smuggling
+- Screenshot watermarks
+- Improved web performance
 
--- A cool GIF will go here, showing the library in action. Just you wait! --
+## A Simple Example
+
+```rust
+use std::time::Duration;
+use bevy::prelude::*;
+use bevy_capture_media::{MediaCapture, BevyCapturePlugin};
+
+pub fn spawn_cameras(
+    mut commands: Commands,
+    mut capture: MediaCapture,
+) {
+    let camera_entity = commands
+        .spawn_bundle(Camera2dBundle::default())
+        .id();
+        
+    // The tracking ID (1357) is arbitrary, but uniquely identifies this tracker
+    capture.start_tracking_camera(1357, camera_entity, Duration::from_secs(5));
+}
+
+pub fn take_screenshot(
+    input: Res<Input<KeyCode
+    mut capture: MediaCapture,
+) {
+    if input.just_released(KeyCode::RShift) {
+        // If you have many cameras, consider storing their IDs
+        // in a resource
+        capture.capture_png(1357);
+    }
+}
+
+fn main() {
+    app::new()
+        .add_plugin(DefaultPlugins)
+        .add_plugins(bevy_capture_media::BevyCapturePlugin)
+        .add_startup_system(spawn_cameras)
+        .add_system(take_screenshot);
+}
+```
+
+https://user-images.githubusercontent.com/2522620/184448446-8cd5214b-81fa-41a3-bdbe-156412cc99cc.mp4
 
 ## Contributing
 

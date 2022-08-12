@@ -5,6 +5,8 @@ pub mod formats;
 mod image_utils;
 pub mod management;
 pub mod render;
+#[cfg(target_arch = "wasm32")]
+mod web_utils;
 
 mod plugin {
 	use bevy_app::{App, CoreStage, Plugin};

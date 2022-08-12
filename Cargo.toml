@@ -32,3 +32,20 @@ gif = { version = "0.11", optional = true }
 color_quant = { version = "1.1.0", optional = true }
 rayon = { version = "1.5", optional = true }
 fnv = { version = "1" , optional = true}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = { version = "0.3.58" }
+wasm-bindgen = "0.2.81"
+wasm-bindgen-futures = "0.4.31"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = "0.3.58"
+features = [
+	"Window",
+	"Document",
+	"Blob",
+	"BlobPropertyBag",
+	"Element",
+	"HtmlElement",
+	"FileReader",
+]

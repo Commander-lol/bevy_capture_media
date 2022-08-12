@@ -1,7 +1,7 @@
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use bevy_asset::Assets;
+use bevy_asset::{Assets, Handle};
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::Events;
 use bevy_ecs::system::{Commands, Res, ResMut};
@@ -12,10 +12,22 @@ use futures_lite::future;
 use image::{EncodableLayout, ImageBuffer, ImageFormat};
 use wgpu::TextureFormat;
 
-use crate::data::{ActiveRecorders, CaptureFrame, HasTaskStatus};
+use crate::data::{ActiveRecorders, Alignment, CaptureFrame, HasTaskStatus};
 use crate::image_utils::frame_data_to_rgba_image;
 #[cfg(target_arch = "wasm32")]
 use crate::web_utils;
+
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Default)]
+pub enum SavePng {
+	#[default]
+	Basic,
+	Watermarked {
+		watermark: Handle<Image>,
+		alignment: Alignment,
+	},
+}
+
+pub type SavePngFile = CaptureFrame<SavePng>;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Component)]
@@ -31,7 +43,7 @@ impl HasTaskStatus for SaveFrameTask {
 
 pub fn save_single_frame(
 	mut commands: Commands,
-	mut events: ResMut<Events<CaptureFrame>>,
+	mut events: ResMut<Events<SavePngFile>>,
 	recorders: ResMut<ActiveRecorders>,
 	images: Res<Assets<Image>>,
 ) {
@@ -63,6 +75,11 @@ pub fn save_single_frame(
 				}
 
 				let image = frame_data_to_rgba_image(width, height, data, format);
+
+				// if let SavePng::Watermarked { watermark } = event {
+				// 	let watermark_image = watermark
+				// }
+
 				#[cfg(not(target_arch = "wasm32"))]
 				{
 					let file_name = event.path.unwrap_or_else(|| {

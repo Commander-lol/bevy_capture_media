@@ -1,10 +1,12 @@
+#![feature(doc_auto_cfg)]
+
 #[allow(clippy::type_complexity)]
 pub mod data;
 pub mod formats;
 #[cfg(any(feature = "gif", feature = "png"))]
 mod image_utils;
-pub mod management;
-pub mod render;
+mod management;
+mod render;
 #[cfg(target_arch = "wasm32")]
 mod web_utils;
 
@@ -22,7 +24,6 @@ mod plugin {
 
 			app.add_event::<data::StartTrackingCamera>()
 				.add_event::<data::StopTrackingCamera>()
-				.add_event::<data::CaptureFrame>()
 				.insert_resource(tracking_tracker)
 				.insert_resource(data_smuggler.clone())
 				.add_system_to_stage(CoreStage::First, management::clean_cameras)
@@ -35,7 +36,7 @@ mod plugin {
 
 			#[cfg(feature = "gif")]
 			{
-				app.add_event::<data::CaptureRecording<formats::gif::RecordGif>>()
+				app.add_event::<formats::gif::CaptureGifRecording>()
 					.add_system_to_stage(
 						CoreStage::PostUpdate,
 						formats::gif::capture_gif_recording,
@@ -49,7 +50,8 @@ mod plugin {
 			}
 			#[cfg(feature = "png")]
 			{
-				app.add_system_to_stage(CoreStage::PostUpdate, formats::png::save_single_frame);
+				app.add_event::<formats::png::SavePngFile>()
+					.add_system_to_stage(CoreStage::PostUpdate, formats::png::save_single_frame);
 
 				#[cfg(not(target_arch = "wasm32"))]
 				app.add_system_to_stage(
@@ -68,4 +70,5 @@ mod plugin {
 	}
 }
 
+pub use data::MediaCapture;
 pub use plugin::BevyCapturePlugin;

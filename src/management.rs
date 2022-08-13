@@ -148,6 +148,8 @@ pub fn start_tracking_orthographic_camera(
 					tracker: tracker_entity,
 				},
 			);
+		} else {
+			log::error!("Received a request to track a camera, but that camera could not be found with a query for Camera, Transform, and OrthographicProjection components");
 		}
 	}
 }

@@ -52,7 +52,13 @@ pub fn save_single_frame(
 		if let Some(recorder) = recorders.get(&event.tracking_id) {
 			let data = match recorder.frames.back() {
 				Some(data) => data.texture.clone(),
-				None => continue 'event_drain,
+				None => {
+					log::warn!(
+						"Recorder {} had no frames to save, skipping",
+						event.tracking_id
+					);
+					continue 'event_drain;
+				}
 			};
 
 			let (width, height, target_format) = match images.get(&recorder.target_handle) {
@@ -61,7 +67,13 @@ pub fn save_single_frame(
 					image.size().y as u32,
 					image.texture_descriptor.format,
 				),
-				None => continue 'event_drain,
+				None => {
+					log::warn!(
+						"Failed to get Image from Recorder {}'s Handle<Image>, skipping",
+						event.tracking_id
+					);
+					continue 'event_drain;
+				}
 			};
 
 			let task = thread_pool.spawn(async move {
@@ -119,6 +131,11 @@ pub fn save_single_frame(
 			task.detach();
 			#[cfg(not(target_arch = "wasm32"))]
 			commands.spawn().insert(SaveFrameTask(task));
+		} else {
+			log::warn!(
+				"Failed to find camera {} while trying to save a frame",
+				event.tracking_id
+			);
 		}
 	}
 }

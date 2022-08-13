@@ -4,9 +4,12 @@ version = "0.0.2"
 edition = "2021"
 authors = ["Louis Capitanchik <louis@microhacks.co.uk"]
 license = "Apache-2.0"
-license-file = "LICENSE"
 repository = "https://github.com/Commander-lol/bevy_capture_media"
 description = "Event based screenshots & recording for Bevy Engine"
+
+[package.metadata.docs.rs]
+all-features = true
+cargo-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["png"]

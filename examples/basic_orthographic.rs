@@ -61,5 +61,11 @@ fn main() {
 		.add_plugin(BevyCapturePlugin)
 		.add_startup_system(spawn_cameras)
 		.add_system(take_screenshot)
+		.insert_resource(WindowDescriptor {
+			width: 800.0,
+			height: 600.0,
+			title: String::from("Multiple Cameras Example"),
+			..Default::default()
+		})
 		.run();
 }

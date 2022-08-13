@@ -19,6 +19,8 @@ Event based image &amp; video capture for Bevy
 
 ## Roadmap
 - Perspective camera support
+- Support for viewports
+- Support for resizing cameras
 - More formats
 - More control over frame smuggling
 - Screenshot watermarks
@@ -86,3 +88,4 @@ The git repository contains some assets for the examples. They are licensed from
 following licenses:
 
 - **KenneyBlocks.tts**: [[CC0]](http://creativecommons.org/publicdomain/zero/1.0/), [Created/distributed by Kenney](www.kenney.nl) 
+- **Tree.gltf**: [[CC0]](http://creativecommons.org/publicdomain/zero/1.0/), [Created/distributed by Kenney](www.kenney.nl) 

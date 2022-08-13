@@ -1,4 +1,4 @@
-#![feature(doc_auto_cfg)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[allow(clippy::type_complexity)]
 pub mod data;

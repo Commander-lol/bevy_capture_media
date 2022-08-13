@@ -55,11 +55,12 @@ pub fn take_screenshot(
 }
 
 fn main() {
-    app::new()
+    App::new()
         .add_plugin(DefaultPlugins)
-        .add_plugins(bevy_capture_media::BevyCapturePlugin)
+        .add_plugin(bevy_capture_media::BevyCapturePlugin)
         .add_startup_system(spawn_cameras)
-        .add_system(take_screenshot);
+        .add_system(take_screenshot)
+        .run();
 }
 ```
 
@@ -78,3 +79,10 @@ Yes! This is great! There is a small checklist that any new format will need to 
 - The format must perform well for a web target - if there is a very good reason to circumvent this, the format may still be accepted.
 - By default, the format and any dependencies must be optional and opt-in. 
 - No patent-encumbered or closed formats will be accepted unless there is a free and permissive license grant for this project and any end users.
+
+## Asset Licenses
+
+The git repository contains some assets for the examples. They are licensed from their original creators with the
+following licenses:
+
+- **KenneyBlocks.tts**: [[CC0]](http://creativecommons.org/publicdomain/zero/1.0/), [Created/distributed by Kenney](www.kenney.nl) 
